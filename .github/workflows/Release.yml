@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Git
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+
+      - name: Read version from file
+        id: version
+        run: echo "::set-output name=version::$(cat VERSION)" 
+          
+      - name: Archive Files
+        run: |
+           tar -czf SDLH-SQL.tar.gz synapse_sql_serverless/
+    
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: synapse_workspace/SDLH.tar.gz 
+          tag: v${{ steps.version.outputs.version }}
+          body: |
+            Release v${{ steps.version.outputs.version }}
+          omitNameDuringUpdate: true
+          omitBodyDuringUpdate: true
+          omitDraftDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
+          makeLatest: true
