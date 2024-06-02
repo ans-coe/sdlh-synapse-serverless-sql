@@ -26,8 +26,7 @@ jobs:
           
       - name: Archive Files
         run: |
-          cd synapse_sql_serverless
-          tar -czf SDLH-SQL.tar.gz 'Stored Procedures/' 
+          tar -czf SDLH-SQL.tar.gz -C synapse_sql_serverless .
     
       - name: Create Release
         uses: ncipollo/release-action@v1
