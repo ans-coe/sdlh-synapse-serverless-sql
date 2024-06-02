@@ -330,3 +330,42 @@ END
 GO
 -- ===============================================================================================
 -- ===============================================================================================
+/*
+===================================================================================
+Author: Darren Price
+Created: 2024-05-24
+Name: usp_ExecuteStoredProcedure
+Description: Parameterized CETAS query that takes in 3 parameters and has 1 main outcomes:
+1. Executes provided stored procedure (@PARAM_STORED_PROCEDURE_NAME)
+on provided database @PARAM_TARGET_DATABASE_NAME and schema @PARAM_TARGET_SCEMA_NAME
+===================================================================================
+Change History
+
+Date		Name			Description
+2024-05-31	Darren Price	Initial Version
+===================================================================================
+*/
+CREATE OR ALTER PROCEDURE [Config].[usp_ExecuteStoredProcedure] (
+    -- Add the parameters for the stored procedure here
+    @PARAM_TARGET_DATABASE_NAME nvarchar(50) = NULL,
+	@PARAM_TARGET_SCEMA_NAME nvarchar(50) = NULL,
+	@PARAM_STORED_PROCEDURE_NAME nvarchar(150) = NULL
+)
+AS
+
+BEGIN
+    DECLARE @sqlExecute nvarchar(MAX);
+
+    SET @sqlExecute = 
+    N'
+    USE ['+ @PARAM_TARGET_DATABASE_NAME +'];
+
+    EXEC ['+ @PARAM_TARGET_SCEMA_NAME+'].['+ @PARAM_STORED_PROCEDURE_NAME+']
+    '
+
+    EXEC sp_executesql @sqlExecute;
+
+END
+GO
+-- ===============================================================================================
+-- ===============================================================================================

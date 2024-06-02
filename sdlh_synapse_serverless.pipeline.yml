@@ -1,0 +1,82 @@
+############################################################################
+# ANS CoE SDLH (Strategic Data Lakehouse) Synapse Serverless SQL Deployment
+#
+# This template contains a pipeline definition to extract
+# and create feature branch for Synapse Serverless SQL Metdata DB
+# https://github.com/ans-coe/sdlh-synapse-serverless-sql
+############################################################################
+parameters:
+- name: pat_token
+  type: string
+- name: repo_path_metadata_db
+  type: string
+  default: 'database_projects/synapse_sql_serverless'
+- name: release_version
+  type: string
+  default: 'latest'
+
+variables:
+  current_date: $[ format('{0:yyyy}_{0:MM}_{0:dd}', pipeline.startTime) ]
+
+name: SDLH Synapse Serverless SQL Deployment
+
+pr: none
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self
+
+- task: CmdLine@2
+  displayName: 'Setup Git'
+  inputs:
+    script: |
+      git config --local user.email "noreply@ansgroup.co.uk"
+      git config --local user.name $(Build.RequestedFor)
+
+- task: CmdLine@2
+  displayName: 'Get Upstream'
+  inputs:
+    script: |
+      if [[ ${{ parameters.release_version }} == "latest" ]]; then
+        BUNDLE_URL=$(curl -s https://api.github.com/repos/ans-coe/sdlh-synapse-serverless-sql/releases/latest | jq -r '.assets[] | select(.name == "SDLH-SQL.tar.gz") | .browser_download_url')
+        wget -q "$BUNDLE_URL" -O "SDLH-SQL.tar.gz"
+      else
+        BUNDLE_URL=$(curl -s https://api.github.com/repos/ans-coe/sdlh-synapse-serverless-sql/releases/tags/v${{ parameters.release_version }} | jq -r '.assets[] | select(.name == "SDLH-SQL.tar.gz") | .browser_download_url')
+        wget -q "$BUNDLE_URL" -O "SDLH-SQL.tar.gz"
+      fi
+
+- task: CmdLine@2
+  displayName: 'Extract Upstream Zip'
+  inputs:
+    script: |
+      tar -xzf "SDLH-SQL.tar.gz" -C ./${{ parameters.repo_path_metadata_db }}
+      rm "SDLH-SQL.tar.gz"
+
+- task: CmdLine@2
+  displayName: 'Check for Updates'
+  inputs:
+    script: |
+      if [[ -n $(git status --porcelain) ]]; then
+          echo "There are modified or untracked files."
+          git add .
+          git commit -m "sdlh_updates_$(current_date)"
+          echo "##vso[task.setvariable variable=updates]true"
+      else
+          echo "There are no modified or untracked files."
+          echo "##vso[task.setvariable variable=updates]false"
+      fi
+
+- task: CmdLine@2
+  displayName: 'Push Changes'
+  inputs:
+    script: |
+      if [ "$(updates)" == "true" ]; then
+          git remote set-url origin $(git remote get-url origin | sed "s|https://[^@]*@dev.azure.com|https://${{ parameters.pat_token }}@dev.azure.com|") 
+          echo "Pushing changes to preview-sdlh-updates branch."
+          git push origin HEAD:refs/heads/preview-sdlh-updates-build$(Build.BuildId)
+      else
+          echo "No updates to push."
+      fi
