@@ -18,14 +18,18 @@ Date		Name			Description
 2024-05-24	Darren Price	Initial Version
 2024-07-24	Darren Price	Added collation option
 2024-07-25	Darren Price	Updated syntax to add ; termination & replace EXEC with EXECUTE
+2024-10-04	Darren Price	Added parameters for datalake container naming
 ===================================================================================
 */
-CREATE OR ALTER PROCEDURE [Config].[usp_CreateServerlessBaseConfig] (
+CREATE OR ALTER   PROCEDURE [Config].[usp_CreateServerlessBaseConfig] (
     -- Add the parameters for the stored procedure here
     @PARAM_TARGET_DATABASE_NAME nvarchar(50) = NULL,
     @PARAM_TARGET_DATABASE_COLLATION nvarchar(50) = NULL,
     @PARAM_TARGET_SCHEMA_NAME nvarchar(50) = NULL,
-    @PARAM_STORAGE_ACCOUNT_NAME nvarchar(50) = NULL
+    @PARAM_STORAGE_ACCOUNT_NAME nvarchar(50) = NULL,
+	@PARAM_CONTAINER_NAME_RAW VARCHAR(150) = 'raw',
+    @PARAM_CONTAINER_NAME_ENRICHED VARCHAR(150) = 'enriched',
+	@PARAM_CONTAINER_NAME_CURATED VARCHAR(150) = 'curated'
 )
 AS
 
@@ -100,11 +104,11 @@ BEGIN
     N'
     USE ['+ @PARAM_TARGET_DATABASE_NAME +'];
 
-    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_raw'')
+    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_'+ @PARAM_CONTAINER_NAME_RAW +''')
     BEGIN
-        CREATE EXTERNAL DATA SOURCE [exds_gen2_raw]
+        CREATE EXTERNAL DATA SOURCE [exds_gen2_'+ @PARAM_CONTAINER_NAME_RAW +']
         WITH (
-            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/raw'',
+            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/'+ @PARAM_CONTAINER_NAME_RAW +''',
             CREDENTIAL = [cred_managed_identity]
         );
     END;
@@ -113,11 +117,11 @@ BEGIN
     N'
     USE ['+ @PARAM_TARGET_DATABASE_NAME +'];
 
-    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_enriched'')
+    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_'+ @PARAM_CONTAINER_NAME_ENRICHED +''')
     BEGIN
-        CREATE EXTERNAL DATA SOURCE [exds_gen2_enriched]
+        CREATE EXTERNAL DATA SOURCE [exds_gen2_'+ @PARAM_CONTAINER_NAME_ENRICHED +']
         WITH (
-            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/enriched'',
+            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/'+ @PARAM_CONTAINER_NAME_ENRICHED +''',
             CREDENTIAL = [cred_managed_identity]
         );
     END;
@@ -126,11 +130,11 @@ BEGIN
     N'
     USE ['+ @PARAM_TARGET_DATABASE_NAME +'];
 
-    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_curated'')
+    IF NOT EXISTS (SELECT [name] FROM sys.external_data_sources WHERE [name] = ''exds_gen2_'+ @PARAM_CONTAINER_NAME_CURATED +''')
     BEGIN
-        CREATE EXTERNAL DATA SOURCE [exds_gen2_curated]
+        CREATE EXTERNAL DATA SOURCE [exds_gen2_'+ @PARAM_CONTAINER_NAME_CURATED +']
         WITH (
-            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/curated'',
+            LOCATION = N''https://'+ @PARAM_STORAGE_ACCOUNT_NAME +'.dfs.core.windows.net/'+ @PARAM_CONTAINER_NAME_CURATED +''',
             CREDENTIAL = [cred_managed_identity]
         );
     END;
