@@ -34,7 +34,7 @@ steps:
   inputs:
     script: |
       git config --local user.email "noreply@ansgroup.co.uk"
-      git config --local user.name $(Build.RequestedFor)
+      git config --local user.name "$(Build.RequestedFor)"
 
 - task: CmdLine@2
   displayName: 'Get Upstream'
